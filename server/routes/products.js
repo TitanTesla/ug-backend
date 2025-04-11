@@ -61,34 +61,8 @@ router.delete('/', async (req, res) => {
   }
 });
 
-// UPDATE: Quantity and/or price by name + category
-router.put('/', async (req, res) => {
-  const { name, category } = req.query;
-  const { quantity, price } = req.body;
 
-  try {
-    if (!name || !category || (quantity == null && price == null)) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-    const updateFields = {};
-    if (quantity != null) updateFields.quantity = quantity;
-    if (price != null) updateFields.price = price;
-
-    const updated = await Product.findOneAndUpdate(
-      { name, category },
-      { $set: updateFields },
-      { new: true }
-    );
-
-    if (!updated) return res.status(404).json({ message: 'Product not found' });
-
-    res.status(200).json({ message: 'Product updated', updated });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating product', error });
-  }
-})
-  // UPDATE with image: supports updating price, quantity, image
+// UPDATE with image: supports updating price, quantity, image
 router.put('/update', upload.single('image'), async (req, res) => {
   const { name, category } = req.body;
 
@@ -120,6 +94,7 @@ router.put('/update', upload.single('image'), async (req, res) => {
     console.error('Error updating product with image:', error);
     res.status(500).json({ message: 'Error updating product', error });
   }
-});;
+});
+;
 
 module.exports = router;
