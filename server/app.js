@@ -8,7 +8,7 @@ const path = require('path');
 const allowedOrigins = [
   "http://localhost:3002",
   "http://127.0.0.1:3002",
-  "https://titantesla.github.io/ug-frontend/", // Optional for GitHub Pages
+  "https://titantesla.github.io", // Optional for GitHub Pages
 ];
 
 
