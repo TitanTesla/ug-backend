@@ -107,12 +107,11 @@ router.put('/update', upload.single('image'), async (req, res) => {
   }
 
   try {
-    const updated = await Product.findOneAndUpdate(
+      const updated = await Product.findOneAndUpdate(
       { name, category },
       { $set: updates },
-      { new: true }
-    );
-
+      { new: true, runValidators: true, context: 'query' }
+      );
     if (!updated) {
       return res.status(404).json({ message: 'Product not found' });
     }
