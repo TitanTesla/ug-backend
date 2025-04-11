@@ -4,18 +4,20 @@ const multer = require('multer');
 const path = require('path');
 const Product = require('../models/product');
 
-// Image storage config (flat structure)
+// === Multer Config ===
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, './server/uploads'); // Save in client/images
+    cb(null, './server/uploads'); // Make sure this path exists
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique name
+    cb(null, Date.now() + path.extname(file.originalname)); // e.g., 16829232.png
   }
 });
 const upload = multer({ storage });
 
-// CREATE: Add product with image
+/* ========== ROUTES ========== */
+
+// === CREATE: Add new product with image ===
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { name, price, quantity, category } = req.body;
@@ -37,7 +39,7 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-// READ: Get all products
+// === READ: Get all products ===
 router.get('/', async (req, res) => {
   try {
     const products = await Product.find();
@@ -47,10 +49,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-// DELETE: By name and category
+// === DELETE: By name + category ===
 router.delete('/', async (req, res) => {
   const { name, category } = req.query;
-
   try {
     const deleted = await Product.findOneAndDelete({ name, category });
     if (!deleted) return res.status(404).json({ message: 'Product not found' });
@@ -61,8 +62,35 @@ router.delete('/', async (req, res) => {
   }
 });
 
+// === UPDATE: Quantity/Price (only via JSON) ===
+router.put('/', async (req, res) => {
+  const { name, category } = req.query;
+  const { quantity, price } = req.body;
 
-// UPDATE with image: supports updating price, quantity, image
+  try {
+    if (!name || !category || (quantity == null && price == null)) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const updateFields = {};
+    if (quantity != null) updateFields.quantity = quantity;
+    if (price != null) updateFields.price = price;
+
+    const updated = await Product.findOneAndUpdate(
+      { name, category },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ message: 'Product not found' });
+
+    res.status(200).json({ message: 'Product updated', updated });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating product', error });
+  }
+});
+
+// === UPDATE with IMAGE: Price/Quantity/Image (via FormData) ===
 router.put('/update', upload.single('image'), async (req, res) => {
   const { name, category } = req.body;
 
@@ -95,6 +123,5 @@ router.put('/update', upload.single('image'), async (req, res) => {
     res.status(500).json({ message: 'Error updating product', error });
   }
 });
-;
 
 module.exports = router;
