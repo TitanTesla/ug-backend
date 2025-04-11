@@ -87,6 +87,39 @@ router.put('/', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Error updating product', error });
   }
-});
+})
+  // UPDATE with image: supports updating price, quantity, image
+router.put('/update', upload.single('image'), async (req, res) => {
+  const { name, category } = req.body;
+
+  if (!name || !category) {
+    return res.status(400).json({ message: 'Product name and category are required' });
+  }
+
+  const updates = {};
+
+  if (req.body.price) updates.price = req.body.price;
+  if (req.body.quantity) updates.quantity = req.body.quantity;
+  if (req.file) {
+    updates.image = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+  }
+
+  try {
+    const updated = await Product.findOneAndUpdate(
+      { name, category },
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating product with image:', error);
+    res.status(500).json({ message: 'Error updating product', error });
+  }
+});;
 
 module.exports = router;
