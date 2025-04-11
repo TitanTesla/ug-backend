@@ -19,7 +19,7 @@ const upload = multer({ storage });
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { name, price, quantity, category } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
 
     const newProduct = new Product({
       name,
