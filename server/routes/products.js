@@ -9,7 +9,7 @@ const Product = require('../models/product');
 // Image storage config (flat structure)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'client/images/'); // Save in client/images
+    cb(null, 'uploads/'); // Save in client/images
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname)); // Unique name
@@ -21,7 +21,7 @@ const upload = multer({ storage });
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { name, price, quantity, category } = req.body;
-    const imageUrl = req.file ? `/images/${req.file.filename}` : '';
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
     const newProduct = new Product({
       name,
@@ -67,7 +67,7 @@ router.delete('/', async (req, res) => {
 router.put('/', upload.single('image'), async (req, res) => {
   const { name, category } = req.query;
   const { quantity, price } = req.body;
-  const imageUrl = req.file ? `/images/${req.file.filename}` : null;
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
     if (!name || !category || (quantity == null && price == null && !imageUrl)) {
