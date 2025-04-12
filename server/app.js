@@ -9,6 +9,9 @@ const salesRoutes = require("./routes/sales");
 require('dotenv').config();
 
 const app = express();
+const fs = require('fs');
+if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
+
 
 
 // Middleware
