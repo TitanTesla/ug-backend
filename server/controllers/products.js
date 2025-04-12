@@ -2,24 +2,24 @@ const Product = require('../models/product');
 const multer = require('multer');
 const path = require('path');
 
-// Set image upload path to uploads/
+// === Image Upload Configuration ===
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, 'uploads/'); // store in /uploads (matches Render setup)
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    cb(null, Date.now() + path.extname(file.originalname)); // unique name
   }
 });
-
 const upload = multer({ storage });
 
+// === Add Product with Image ===
 const addProduct = async (req, res) => {
   try {
     const { name, price, quantity, category } = req.body;
     const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
 
-    const product = new Product({
+    const newProduct = new Product({
       name,
       price,
       quantity,
@@ -27,33 +27,36 @@ const addProduct = async (req, res) => {
       image: imagePath
     });
 
-    await product.save();
-    res.status(201).json(product);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    const saved = await newProduct.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };
 
+// === Get All Products ===
 const getProducts = async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
+// === Delete Product by name + category ===
 const deleteProduct = async (req, res) => {
   const { name, category } = req.query;
   try {
     const deleted = await Product.findOneAndDelete({ name, category });
     if (!deleted) return res.status(404).json({ message: 'Product not found' });
-    res.json({ message: 'Deleted successfully', deleted });
+    res.status(200).json({ message: 'Product deleted', deleted });
   } catch (err) {
-    res.status(500).json({ message: 'Error deleting product', err });
+    res.status(500).json({ message: 'Error deleting product', error: err.message });
   }
 };
 
+// === Update Product (price/qty only) ===
 const updateProduct = async (req, res) => {
   const { name, category } = req.query;
   const { price, quantity } = req.body;
@@ -63,8 +66,8 @@ const updateProduct = async (req, res) => {
   }
 
   const updateFields = {};
-  if (price != null) updateFields.price = price;
-  if (quantity != null) updateFields.quantity = quantity;
+  if (price !== undefined) updateFields.price = price;
+  if (quantity !== undefined) updateFields.quantity = quantity;
 
   try {
     const updated = await Product.findOneAndUpdate(
@@ -75,11 +78,11 @@ const updateProduct = async (req, res) => {
     if (!updated) return res.status(404).json({ message: 'Product not found' });
     res.json({ message: 'Product updated', updated });
   } catch (err) {
-    res.status(500).json({ message: 'Error updating product', err });
+    res.status(500).json({ message: 'Error updating product', error: err.message });
   }
 };
 
-// ✅ NEW: Update with image (multipart/form-data)
+// === Update Product with Image (via FormData) ===
 const updateProductWithImage = async (req, res) => {
   const { name, category } = req.query;
 
@@ -101,7 +104,7 @@ const updateProductWithImage = async (req, res) => {
     if (!updated) return res.status(404).json({ message: 'Product not found' });
     res.json({ message: 'Product updated with image', updated });
   } catch (err) {
-    res.status(500).json({ message: 'Error updating product', err });
+    res.status(500).json({ message: 'Error updating product', error: err.message });
   }
 };
 
