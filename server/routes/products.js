@@ -1,9 +1,7 @@
-// File: routes/products.js
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
 const {
+  upload,
   addProduct,
   getProducts,
   deleteProduct,
@@ -11,22 +9,19 @@ const {
   updateProductWithImage
 } = require('../controllers/products');
 
-// === IMAGE STORAGE ===
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // for Render
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage });
-
-// === ROUTES ===
+// Create product with image
 router.post('/', upload.single('image'), addProduct);
+
+// Get all products
 router.get('/', getProducts);
+
+// Delete by name & category
 router.delete('/', deleteProduct);
-router.put('/', updateProduct); // For quantity/price via JSON
-router.put('/update', upload.single('image'), updateProductWithImage); // For image update
+
+// Update quantity/price only
+router.put('/', updateProduct);
+
+// Update with image (FormData support)
+router.put('/update', upload.single('image'), updateProductWithImage);
 
 module.exports = router;
