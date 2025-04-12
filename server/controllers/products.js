@@ -5,7 +5,7 @@ const path = require('path');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'client/images/');
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -17,7 +17,7 @@ const upload = multer({ storage });
 const addProduct = async (req, res) => {
   try {
     const { name, price, quantity, category } = req.body;
-    const imagePath = req.file ? `/images/${req.file.filename}` : '';
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
 
     const product = new Product({
       name,
