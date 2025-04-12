@@ -1,3 +1,5 @@
+// server/routes/products.js
+
 const express = require('express');
 const router = express.Router();
 const {
@@ -5,19 +7,23 @@ const {
   getProducts,
   deleteProduct,
   updateProduct,
+  updateProductWithImage,
   upload
 } = require('../controllers/products');
 
-// === CREATE ===
+// === POST: Create Product (with image) ===
 router.post('/', upload.single('image'), addProduct);
 
-// === READ ===
+// === GET: All products ===
 router.get('/', getProducts);
 
-// === DELETE ===
+// === DELETE: Product by name and category ===
 router.delete('/', deleteProduct);
 
-// === UPDATE (supports optional image upload) ===
-router.put('/', upload.single('image'), updateProduct);
+// === PUT: Update price/quantity (JSON) ===
+router.put('/', updateProduct);
+
+// === PUT: Update product with image (FormData) ===
+router.put('/update', upload.single('image'), updateProductWithImage);
 
 module.exports = router;
