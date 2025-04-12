@@ -1,72 +1,58 @@
-// server/controllers/products.js
-
+// File: controllers/products.js
 const Product = require('../models/product');
 const multer = require('multer');
 const path = require('path');
 
-// === Multer Setup ===
+// === Multer Storage Setup ===
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'server/uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
 
-// === Create Product ===
+// === CREATE ===
 const addProduct = async (req, res) => {
   try {
     const { name, price, quantity, category } = req.body;
     const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
 
-    const product = new Product({
-      name,
-      price,
-      quantity,
-      category,
-      image: imagePath
-    });
-
+    const product = new Product({ name, price, quantity, category, image: imagePath });
     await product.save();
     res.status(201).json(product);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 };
 
-// === Get All Products ===
+// === READ ===
 const getProducts = async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
-// === Delete Product by name + category ===
+// === DELETE ===
 const deleteProduct = async (req, res) => {
   const { name, category } = req.query;
-
   try {
     const deleted = await Product.findOneAndDelete({ name, category });
     if (!deleted) return res.status(404).json({ message: 'Product not found' });
-
     res.status(200).json({ message: 'Product deleted', deleted });
-  } catch (err) {
-    res.status(500).json({ message: 'Error deleting product', error: err });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting product', error });
   }
 };
 
-// === Update Quantity and/or Price ===
+// === UPDATE (without image) ===
 const updateProduct = async (req, res) => {
   const { name, category } = req.query;
   const { quantity, price } = req.body;
 
-  if (!name || !category) {
-    return res.status(400).json({ message: 'Missing name or category' });
+  if (!name || !category || (quantity == null && price == null)) {
+    return res.status(400).json({ message: 'Missing required fields' });
   }
 
   try {
@@ -81,29 +67,28 @@ const updateProduct = async (req, res) => {
     );
 
     if (!updated) return res.status(404).json({ message: 'Product not found' });
-
     res.status(200).json({ message: 'Product updated', updated });
-  } catch (err) {
-    res.status(500).json({ message: 'Error updating product', error: err });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating product', error });
   }
 };
 
-// === Update with Image ===
+// === UPDATE with Image ===
 const updateProductWithImage = async (req, res) => {
-  const { name, category } = req.body;
+  const { name, category } = req.query;
   const { quantity, price } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : null;
+  const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-  if (!name || !category) {
-    return res.status(400).json({ message: 'Missing name or category' });
+  if (!name || !category || (!quantity && !price && !imagePath)) {
+    return res.status(400).json({ message: 'Missing fields to update' });
   }
 
-  const updateFields = {};
-  if (quantity != null) updateFields.quantity = quantity;
-  if (price != null) updateFields.price = price;
-  if (image) updateFields.image = image;
-
   try {
+    const updateFields = {};
+    if (quantity) updateFields.quantity = quantity;
+    if (price) updateFields.price = price;
+    if (imagePath) updateFields.image = imagePath;
+
     const updated = await Product.findOneAndUpdate(
       { name, category },
       { $set: updateFields },
@@ -111,10 +96,9 @@ const updateProductWithImage = async (req, res) => {
     );
 
     if (!updated) return res.status(404).json({ message: 'Product not found' });
-
-    res.status(200).json({ message: 'Product updated with image', updated });
-  } catch (err) {
-    res.status(500).json({ message: 'Error updating product with image', error: err });
+    res.status(200).json({ message: 'Product updated', updated });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating product', error });
   }
 };
 
