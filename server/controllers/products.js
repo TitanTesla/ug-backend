@@ -1,25 +1,28 @@
+// controllers/products.js
+
 const Product = require('../models/product');
 const multer = require('multer');
 const path = require('path');
 
-// === Image Upload Configuration ===
+// Configure Multer for uploads to /uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // store in /uploads (matches Render setup)
+    cb(null, 'server/uploads/');
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // unique name
+    cb(null, Date.now() + path.extname(file.originalname));
   }
 });
+
 const upload = multer({ storage });
 
-// === Add Product with Image ===
+// CREATE: Add product with image
 const addProduct = async (req, res) => {
   try {
     const { name, price, quantity, category } = req.body;
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
+    const imagePath = req.file ? `https://${req.headers.host}/uploads/${req.file.filename}` : '';
 
-    const newProduct = new Product({
+    const product = new Product({
       name,
       price,
       quantity,
@@ -27,92 +30,104 @@ const addProduct = async (req, res) => {
       image: imagePath
     });
 
-    const saved = await newProduct.save();
+    const saved = await product.save();
     res.status(201).json(saved);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 };
 
-// === Get All Products ===
+// READ: Get all products
 const getProducts = async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
-// === Delete Product by name + category ===
+// DELETE: Delete by name and category
 const deleteProduct = async (req, res) => {
   const { name, category } = req.query;
+
   try {
     const deleted = await Product.findOneAndDelete({ name, category });
     if (!deleted) return res.status(404).json({ message: 'Product not found' });
+
     res.status(200).json({ message: 'Product deleted', deleted });
-  } catch (err) {
-    res.status(500).json({ message: 'Error deleting product', error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting product', error });
   }
 };
 
-// === Update Product (price/qty only) ===
+// UPDATE: Only quantity and/or price (without image)
 const updateProduct = async (req, res) => {
+  const { name, category } = req.query;
+  const { quantity, price } = req.body;
+
+  try {
+    if (!name || !category || (quantity == null && price == null)) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const updateFields = {};
+    if (quantity != null) updateFields.quantity = quantity;
+    if (price != null) updateFields.price = price;
+
+    const updated = await Product.findOneAndUpdate(
+      { name, category },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ message: 'Product not found' });
+
+    res.status(200).json({ message: 'Product updated', updated });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating product', error });
+  }
+};
+
+// UPDATE: With optional image (form-data)
+const updateProductWithImage = async (req, res) => {
   const { name, category } = req.query;
   const { price, quantity } = req.body;
 
   if (!name || !category) {
-    return res.status(400).json({ message: 'Product name and category are required' });
+    return res.status(400).json({ error: 'Product name and category are required.' });
   }
 
-  const updateFields = {};
-  if (price !== undefined) updateFields.price = price;
-  if (quantity !== undefined) updateFields.quantity = quantity;
-
   try {
+    const updateFields = {};
+    if (price) updateFields.price = Number(price);
+    if (quantity) updateFields.quantity = Number(quantity);
+    if (req.file) {
+      updateFields.image = `https://${req.headers.host}/uploads/${req.file.filename}`;
+    }
+
     const updated = await Product.findOneAndUpdate(
       { name, category },
       { $set: updateFields },
       { new: true }
     );
-    if (!updated) return res.status(404).json({ message: 'Product not found' });
-    res.json({ message: 'Product updated', updated });
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.status(200).json({ message: 'Product updated successfully', updated });
   } catch (err) {
-    res.status(500).json({ message: 'Error updating product', error: err.message });
-  }
-};
-
-// === Update Product with Image (via FormData) ===
-const updateProductWithImage = async (req, res) => {
-  const { name, category } = req.query;
-
-  if (!name || !category) {
-    return res.status(400).json({ message: 'Product name and category are required' });
-  }
-
-  const updateFields = {};
-  if (req.body.price) updateFields.price = req.body.price;
-  if (req.body.quantity) updateFields.quantity = req.body.quantity;
-  if (req.file) updateFields.image = `/uploads/${req.file.filename}`;
-
-  try {
-    const updated = await Product.findOneAndUpdate(
-      { name, category },
-      { $set: updateFields },
-      { new: true }
-    );
-    if (!updated) return res.status(404).json({ message: 'Product not found' });
-    res.json({ message: 'Product updated with image', updated });
-  } catch (err) {
-    res.status(500).json({ message: 'Error updating product', error: err.message });
+    console.error('Update failed:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
 module.exports = {
-  upload,
   addProduct,
   getProducts,
   deleteProduct,
   updateProduct,
-  updateProductWithImage
+  updateProductWithImage,
+  upload
 };
