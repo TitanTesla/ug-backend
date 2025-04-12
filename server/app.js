@@ -3,39 +3,22 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require('./config/db');
 const productRoutes = require('./routes/products');
-const salesRoutes = require("./routes/sales");
-const path = require('path');
-const allowedOrigins = [
-  "http://localhost:3002",
-  "http://127.0.0.1:3002",
-  "https://titantesla.github.io", // Optional for GitHub Pages
-];
-
+const salesRoutes = require('./routes/sales');
 
 const app = express();
 require('dotenv').config();
 
-// Middleware
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+// === MIDDLEWARE ===
+app.use(cors());
 app.use(bodyParser.json());
-app.use('/uploads', express.static('server/uploads'));
+app.use(express.static('uploads')); // serve image URLs like /uploads/xyz.jpg
 
-// Connect to DB
+// === CONNECT TO DB ===
 connectDB();
 
-// Routes
+// === ROUTES ===
 app.use('/api/products', productRoutes);
-app.use("/api", salesRoutes);
+app.use('/api', salesRoutes);
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
