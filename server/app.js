@@ -5,39 +5,24 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require('./config/db');
 const productRoutes = require('./routes/products');
-const salesRoutes = require('./routes/sales');
+const salesRoutes = require("./routes/sales");
 require('dotenv').config();
 
 const app = express();
 
-// === DATABASE CONNECTION ===
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use('/uploads', express.static('uploads')); // So /images works
+
+// Connect to DB
 connectDB();
 
-// === ALLOWED FRONTEND ORIGINS ===
-const allowedOrigins = ['https://titantesla.github.io'];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
-
-// === MIDDLEWARE ===
-app.use(bodyParser.json());
-app.use(express.static('client')); // for /images or static assets
-
-// === ROUTES ===
+// Routes
 app.use('/api/products', productRoutes);
-app.use('/api', salesRoutes);
-
-// === START SERVER ===
+app.use("/api", salesRoutes);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
