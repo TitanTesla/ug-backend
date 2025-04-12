@@ -1,11 +1,13 @@
+// server/controllers/products.js
+
 const Product = require('../models/product');
 const multer = require('multer');
 const path = require('path');
 
-// === MULTER CONFIG ===
+// === Multer Setup ===
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // For Render backend
+    cb(null, 'server/uploads/');
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -13,7 +15,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// === CREATE PRODUCT ===
+// === Create Product ===
 const addProduct = async (req, res) => {
   try {
     const { name, price, quantity, category } = req.body;
@@ -29,22 +31,22 @@ const addProduct = async (req, res) => {
 
     await product.save();
     res.status(201).json(product);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };
 
-// === GET ALL PRODUCTS ===
+// === Get All Products ===
 const getProducts = async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-// === DELETE PRODUCT ===
+// === Delete Product by name + category ===
 const deleteProduct = async (req, res) => {
   const { name, category } = req.query;
 
@@ -53,24 +55,53 @@ const deleteProduct = async (req, res) => {
     if (!deleted) return res.status(404).json({ message: 'Product not found' });
 
     res.status(200).json({ message: 'Product deleted', deleted });
-  } catch (error) {
-    res.status(500).json({ message: 'Error deleting product', error });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting product', error: err });
   }
 };
 
-// === UPDATE PRODUCT (with or without image) ===
+// === Update Quantity and/or Price ===
 const updateProduct = async (req, res) => {
   const { name, category } = req.query;
   const { quantity, price } = req.body;
 
   if (!name || !category) {
-    return res.status(400).json({ message: 'Product name and category are required' });
+    return res.status(400).json({ message: 'Missing name or category' });
+  }
+
+  try {
+    const updateFields = {};
+    if (quantity != null) updateFields.quantity = quantity;
+    if (price != null) updateFields.price = price;
+
+    const updated = await Product.findOneAndUpdate(
+      { name, category },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ message: 'Product not found' });
+
+    res.status(200).json({ message: 'Product updated', updated });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating product', error: err });
+  }
+};
+
+// === Update with Image ===
+const updateProductWithImage = async (req, res) => {
+  const { name, category } = req.body;
+  const { quantity, price } = req.body;
+  const image = req.file ? `/uploads/${req.file.filename}` : null;
+
+  if (!name || !category) {
+    return res.status(400).json({ message: 'Missing name or category' });
   }
 
   const updateFields = {};
-  if (quantity) updateFields.quantity = quantity;
-  if (price) updateFields.price = price;
-  if (req.file) updateFields.image = `/uploads/${req.file.filename}`;
+  if (quantity != null) updateFields.quantity = quantity;
+  if (price != null) updateFields.price = price;
+  if (image) updateFields.image = image;
 
   try {
     const updated = await Product.findOneAndUpdate(
@@ -81,16 +112,17 @@ const updateProduct = async (req, res) => {
 
     if (!updated) return res.status(404).json({ message: 'Product not found' });
 
-    res.status(200).json({ message: 'Product updated', updated });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating product', error });
+    res.status(200).json({ message: 'Product updated with image', updated });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating product with image', error: err });
   }
 };
 
 module.exports = {
+  upload,
   addProduct,
   getProducts,
   deleteProduct,
   updateProduct,
-  upload
+  updateProductWithImage
 };
