@@ -1,3 +1,5 @@
+// File: routes/products.js
+
 const express = require('express');
 const router = express.Router();
 const {
@@ -9,19 +11,19 @@ const {
   updateProductWithImage
 } = require('../controllers/products');
 
-// Create product with image
+// === CREATE: Add product with image ===
 router.post('/', upload.single('image'), addProduct);
 
-// Get all products
+// === READ: Get all products ===
 router.get('/', getProducts);
 
-// Delete by name & category
+// === DELETE: By name and category ===
 router.delete('/', deleteProduct);
 
-// Update quantity/price only
+// === UPDATE (Price/Quantity only via JSON) ===
 router.put('/', updateProduct);
 
-// Update with image (FormData support)
+// === UPDATE with Image (via FormData) ===
 router.put('/update', upload.single('image'), updateProductWithImage);
 
 module.exports = router;
